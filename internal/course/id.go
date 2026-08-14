@@ -2,7 +2,6 @@ package course
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,8 +10,6 @@ import (
 )
 
 const CourseListURL = "https://www.eduplus.net/api/course/courses/v1/study?types=Theory,Train"
-
-var ErrParseCourseInfoFailed = errors.New("解析课程信息异常") // ErrParseCourseInfoFailed 表示解析课程信息异常
 
 type Course struct {
 	client *http.Client
@@ -71,7 +68,7 @@ type CoureseInfoResponse struct {
 	Code    int             `json:"code"`
 	Data    json.RawMessage `json:"data"`
 	Success bool            `json:"success"`
-	Status  string          `json:"status"`
+	Status  int             `json:"status"`
 }
 
 type CourseInfoResponseData struct {
@@ -83,30 +80,30 @@ type CourseInfoResponseData struct {
 func (c *Course) ParseCourseInfo(body []byte) (string, error) {
 	var response CoureseInfoResponse
 	if err := json.Unmarshal(body, &response); err != nil {
-		return "", fmt.Errorf("%w: %w", app.ErrTokenInvalid, err)
+		return "", fmt.Errorf("%w: %w", app.ErrParseCourseInfoFailed, err)
 	}
 	if !response.Success && response.Code != 2000000 {
-		return "", fmt.Errorf("%w: %s", app.ErrTokenInvalid, response.Status)
+		return "", fmt.Errorf("%w: status=%d, code=%d", app.ErrTokenInvalid, response.Status, response.Code)
 	}
 
 	if response.Data == nil {
-		return "", fmt.Errorf("%w: %s", ErrParseCourseInfoFailed, "data 字段为空")
+		return "", fmt.Errorf("%w: %s", app.ErrParseCourseInfoFailed, "data 字段为空")
 	}
 
-	var data CourseInfoResponseData
-	if err := json.Unmarshal(response.Data, &data); err != nil {
-		return "", fmt.Errorf("%w: %w", ErrParseCourseInfoFailed, err)
+	var courses []CourseInfoResponseData
+	if err := json.Unmarshal(response.Data, &courses); err != nil {
+		return "", fmt.Errorf("%w: %w", app.ErrParseCourseInfoFailed, err)
 	}
 
-	// 检查是否有签到
-	if !data.CourseSignInOpen {
-		return "", app.CourseSignInNill
+	for _, course := range courses {
+		if !course.CourseSignInOpen {
+			continue
+		}
+		if course.CourseSignInID == "" {
+			return "", fmt.Errorf("%w: %s", app.ErrParseCourseInfoFailed, "课程签到 ID 为空")
+		}
+		return course.CourseSignInID, nil
 	}
 
-	// 正常来说如果CourseSignInOpen是true，那么CourseSignInID应该不为空，但为了防止意外情况，还是加上判断
-	if data.CourseSignInID == "" {
-		return "", fmt.Errorf("%w: %s", ErrParseCourseInfoFailed, "课程签到 ID 为空")
-	}
-
-	return data.CourseSignInID, nil
+	return "", app.CourseSignInNill
 }

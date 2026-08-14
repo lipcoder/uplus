@@ -20,5 +20,6 @@ var (
 )
 
 var (
-	CourseSignInNill = errors.New("课程暂无签到") // CourseSignInNill 表示暂无课程签到信息。
+	ErrParseCourseInfoFailed = errors.New("解析课程信息异常") // ErrParseCourseInfoFailed 表示解析课程信息异常。
+	CourseSignInNill         = errors.New("课程暂无签到")   // CourseSignInNill 表示暂无课程签到信息。
 )

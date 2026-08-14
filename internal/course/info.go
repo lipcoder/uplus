@@ -67,7 +67,7 @@ type SignInResponse struct {
 	Code    int             `json:"code"`
 	Data    json.RawMessage `json:"data"`
 	Success bool            `json:"success"`
-	Status  string          `json:"status"`
+	Status  int             `json:"status"`
 }
 
 type SignInResponseData struct {

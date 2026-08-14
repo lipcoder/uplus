@@ -57,10 +57,10 @@ func (s *SignIn) SignIn(Token string, CourseSignInID string, CodeDistance string
 	}
 
 	type SignInResponse struct {
-		Code    int    `json:"code"`
-		Data    bool   `json:"data"`
-		Success bool   `json:"success"`
-		Status  string `json:"status"`
+		Code    int  `json:"code"`
+		Data    bool `json:"data"`
+		Success bool `json:"success"`
+		Status  int  `json:"status"`
 	}
 
 	var signInResponse SignInResponse
