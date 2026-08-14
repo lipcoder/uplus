@@ -88,6 +88,59 @@ func (s *Store) SaveAccount(ctx context.Context, phone string, password string, 
 
 }
 
+// AddAccount 添加账号。
+// 如果手机号已经存在，则只更新 token，保留原密码。
+func (s *Store) AddAccount(
+	ctx context.Context,
+	phone string,
+	password string,
+	token string,
+) error {
+	if phone == "" {
+		return errors.New("手机号不能为空")
+	}
+	if password == "" {
+		return errors.New("密码不能为空")
+	}
+	if token == "" {
+		return errors.New("token 不能为空")
+	}
+
+	// 先检查手机号是否已经存在
+	var exists bool
+	err := s.db.QueryRowContext(
+		ctx,
+		"SELECT EXISTS(SELECT 1 FROM accounts WHERE phone = ?)",
+		phone,
+	).Scan(&exists)
+	if err != nil {
+		return fmt.Errorf("检查账号是否存在失败: %w", err)
+	}
+
+	// 已存在，直接更新 token
+	if exists {
+		return s.UpdateToken(ctx, phone, token)
+	}
+
+	// 不存在则新增
+	const query = /* sql */ `
+	INSERT INTO accounts (phone, password, token)
+	VALUES (?, ?, ?);
+	`
+
+	if _, err := s.db.ExecContext(
+		ctx,
+		query,
+		phone,
+		password,
+		token,
+	); err != nil {
+		return fmt.Errorf("添加账号失败: %w", err)
+	}
+
+	return nil
+}
+
 // UpdateToken 按手机号更新 token，并保留原密码。
 func (s *Store) UpdateToken(ctx context.Context, phone string, token string) error {
 	if phone == "" || token == "" {
