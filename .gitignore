@@ -1,0 +1,6 @@
+/data
+ujia-signer-by-crystal/
+.DS_Store
+/accounts.db
+/logx
+/failed-responses/
