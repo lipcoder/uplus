@@ -13,13 +13,13 @@ type SignIn struct {
 	client *http.Client
 }
 
-func NewSignIn(client *http.Client) *SignIn {
+func NewSignInService(client *http.Client) *SignIn {
 	return &SignIn{client: client}
 }
 
 const PasswdSignInURL = "https://www.eduplus.net/api/course/clock_in/study?signInId="
 
-func (s *SignIn) SignIn(Token string, CourseSignInID string, codeDistance string) (bool, error) {
+func (s *SignIn) SignIn(Token string, CourseSignInID string, CodeDistance string) (bool, error) {
 	if Token == "" {
 		return false, app.ErrTokenNill
 	}
@@ -29,10 +29,10 @@ func (s *SignIn) SignIn(Token string, CourseSignInID string, codeDistance string
 	}
 
 	var RequestURL string
-	if codeDistance == "200" {
+	if CodeDistance == "200" {
 		RequestURL = PasswdSignInURL + url.PathEscape(CourseSignInID)
 	} else {
-		RequestURL = PasswdSignInURL + url.PathEscape(CourseSignInID) + "&codeDistance=" + codeDistance
+		RequestURL = PasswdSignInURL + url.PathEscape(CourseSignInID) + "&codeDistance=" + CodeDistance
 	}
 
 	req, err := http.NewRequest(http.MethodPost, RequestURL, nil)
