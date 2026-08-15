@@ -72,6 +72,19 @@ func main() {
 			continue
 		}
 
+		fmt.Print("请输入邮箱：")
+		if !scanner.Scan() {
+			if err := scanner.Err(); err != nil {
+				logger.Error("读取邮箱失败", "error", err)
+			}
+			break
+		}
+		email := scanner.Text()
+		if email == "" {
+			fmt.Println("邮箱不能为空")
+			continue
+		}
+
 		token, err := authService.AuthWithPassword(phone, password)
 		if err != nil {
 			logger.Error("认证失败", "error", err)
@@ -80,10 +93,12 @@ func main() {
 			logger.Info("认证成功", "token", token)
 		}
 
-		err = store.AddAccount(ctx, phone, password, token)
+		err = store.AddAccount(ctx, phone, password, token, email)
 		if err != nil {
 			logger.Error("添加账号失败", "error", err)
+			continue
 		}
+		logger.Info("添加账号成功", "phone", phone, "email", email)
 
 	}
 	if err := scanner.Err(); err != nil {

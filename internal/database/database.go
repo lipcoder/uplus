@@ -54,7 +54,8 @@ func (s *Store) initialize(ctx context.Context) error {
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		phone TEXT NOT NULL UNIQUE,
 		password TEXT NOT NULL,
-		token TEXT NOT NULL
+		token TEXT NOT NULL,
+		email TEXT NOT NULL
 	);`
 
 	if _, err := s.db.ExecContext(ctx, schema); err != nil {
@@ -64,23 +65,33 @@ func (s *Store) initialize(ctx context.Context) error {
 	return nil
 }
 
-// SaveAccount 新增账号；手机号已存在时更新密码和 token。
-func (s *Store) SaveAccount(ctx context.Context, phone string, password string, token string) error {
+// SaveAccount 新增账号；手机号已存在时更新密码、token 和邮箱。
+func (s *Store) SaveAccount(
+	ctx context.Context,
+	phone string,
+	password string,
+	token string,
+	email string,
+) error {
 	if phone == "" {
 		return errors.New("手机号不能为空")
 	}
 	if token == "" {
 		return errors.New("token 不能为空")
 	}
+	if email == "" {
+		return errors.New("邮箱不能为空")
+	}
 	const query = /* sql */ `
-	INSERT INTO accounts (phone, password, token)
-	VALUES (?, ?, ?)
+	INSERT INTO accounts (phone, password, token, email)
+	VALUES (?, ?, ?, ?)
 	ON CONFLICT(phone) DO UPDATE SET
 		password = excluded.password,
-		token = excluded.token;
+		token = excluded.token,
+		email = excluded.email;
 	`
 
-	if _, err := s.db.ExecContext(ctx, query, phone, password, token); err != nil {
+	if _, err := s.db.ExecContext(ctx, query, phone, password, token, email); err != nil {
 		return fmt.Errorf("保存账号失败: %w", err)
 	}
 
@@ -89,12 +100,13 @@ func (s *Store) SaveAccount(ctx context.Context, phone string, password string, 
 }
 
 // AddAccount 添加账号。
-// 如果手机号已经存在，则只更新 token，保留原密码。
+// 如果手机号已经存在，则只更新 token，保留原密码和邮箱。
 func (s *Store) AddAccount(
 	ctx context.Context,
 	phone string,
 	password string,
 	token string,
+	email string,
 ) error {
 	if phone == "" {
 		return errors.New("手机号不能为空")
@@ -104,6 +116,9 @@ func (s *Store) AddAccount(
 	}
 	if token == "" {
 		return errors.New("token 不能为空")
+	}
+	if email == "" {
+		return errors.New("邮箱不能为空")
 	}
 
 	// 先检查手机号是否已经存在
@@ -124,8 +139,8 @@ func (s *Store) AddAccount(
 
 	// 不存在则新增
 	const query = /* sql */ `
-	INSERT INTO accounts (phone, password, token)
-	VALUES (?, ?, ?);
+	INSERT INTO accounts (phone, password, token, email)
+	VALUES (?, ?, ?, ?);
 	`
 
 	if _, err := s.db.ExecContext(
@@ -134,6 +149,7 @@ func (s *Store) AddAccount(
 		phone,
 		password,
 		token,
+		email,
 	); err != nil {
 		return fmt.Errorf("添加账号失败: %w", err)
 	}
@@ -196,10 +212,10 @@ func (s *Store) DeleteAccount(ctx context.Context, phone string) error {
 	return nil
 }
 
-// // LoadAccounts 按写入顺序读取全部账号凭据。
+// LoadAccounts 按写入顺序读取全部账号凭据。
 func (s *Store) LoadAccounts(ctx context.Context) ([]app.Account, error) {
 	const query = /* sql */ `
-	SELECT phone, password, token
+	SELECT phone, password, token, email
 	FROM accounts
 	ORDER BY id
 	`
@@ -213,7 +229,7 @@ func (s *Store) LoadAccounts(ctx context.Context) ([]app.Account, error) {
 	var accounts []app.Account
 	for rows.Next() {
 		var item app.Account
-		if err := rows.Scan(&item.Phone, &item.Password, &item.Token); err != nil {
+		if err := rows.Scan(&item.Phone, &item.Password, &item.Token, &item.Email); err != nil {
 			return nil, fmt.Errorf("解析账号失败: %w", err)
 		}
 		accounts = append(accounts, item)

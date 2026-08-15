@@ -93,7 +93,7 @@ func main() {
 						continue
 					}
 					account.Token = newToken
-					err = store.SaveAccount(ctx, account.Phone, account.Token, account.Password)
+					err = store.SaveAccount(ctx, account.Phone, account.Password, newToken, account.Email)
 					if err != nil {
 						logger.Error("保存账户信息失败", "phone", account.Phone, "error", err)
 						continue
