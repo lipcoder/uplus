@@ -1,7 +1,9 @@
 package signin
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -19,7 +21,7 @@ func NewSignInService(client *http.Client) *SignIn {
 
 const PasswdSignInURL = "https://www.eduplus.net/api/course/clock_in/study?signInId="
 
-func (s *SignIn) SignIn(Token string, CourseSignInID string, CodeDistance string) (bool, error) {
+func (s *SignIn) SignIn(ctx context.Context, Token string, CourseSignInID string, CodeDistance string) (bool, error) {
 	if Token == "" {
 		return false, app.ErrTokenNill
 	}
@@ -35,9 +37,9 @@ func (s *SignIn) SignIn(Token string, CourseSignInID string, CodeDistance string
 		RequestURL = PasswdSignInURL + url.PathEscape(CourseSignInID) + "&codeDistance=" + CodeDistance
 	}
 
-	req, err := http.NewRequest(http.MethodPost, RequestURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, RequestURL, nil)
 	if err != nil {
-		return false, app.ErrBuildRequest
+		return false, fmt.Errorf("%w: %w", app.ErrBuildRequest, err)
 	}
 
 	req.Header.Set("Accept", "application/json, text/plain, */*")
@@ -47,13 +49,13 @@ func (s *SignIn) SignIn(Token string, CourseSignInID string, CodeDistance string
 
 	resp, err := s.client.Do(req)
 	if err != nil {
-		return false, app.ErrHTTPRequest
+		return false, fmt.Errorf("%w: %w", app.ErrHTTPRequest, err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return false, app.ErrHTTPRequest
+		return false, fmt.Errorf("%w: %w", app.ErrHTTPRequest, err)
 	}
 
 	type SignInResponse struct {
@@ -65,7 +67,7 @@ func (s *SignIn) SignIn(Token string, CourseSignInID string, CodeDistance string
 
 	var signInResponse SignInResponse
 	if err := json.Unmarshal(body, &signInResponse); err != nil {
-		return false, app.ErrJSONParse
+		return false, fmt.Errorf("%w: %w", app.ErrJSONParse, err)
 	}
 
 	return signInResponse.Data, nil

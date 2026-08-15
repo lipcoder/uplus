@@ -34,25 +34,34 @@ func main() {
 	// 日志器
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
+	// 根上下文负责把 Ctrl+C/SIGTERM 传递给数据库、HTTP 请求和后台任务。
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
+		os.Interrupt,
+		syscall.SIGTERM,
+	)
+	defer stop()
+
 	// 数据库
-	store, err := database.Open(defaultdatabasePath)
+	store, err := database.Open(ctx, defaultdatabasePath)
 	if err != nil {
+		if ctx.Err() != nil {
+			logger.Info("收到退出信号，程序已停止")
+			return
+		}
 		logger.Error("无法打开数据库", "error", err)
 		os.Exit(1)
 	}
 	defer store.Close()
 	logger.Info("数据库连接成功")
 
-	// 项目级上下文，用于处理系统信号（如 SIGINT 和 SIGTERM），以便在接收到这些信号时优雅地关闭应用程序。
-	ctx, stop := signal.NotifyContext(
-		context.Background(),
-		syscall.SIGINT, //syscall.SIGTERM表示ctrl+C终止信号
-	)
-	defer stop()
-
 	// 加载账户数据
 	accounts, err := store.LoadAccounts(ctx)
 	if err != nil {
+		if ctx.Err() != nil {
+			logger.Info("收到退出信号，程序已停止")
+			return
+		}
 		logger.Error("无法加载账户数据", "error", err)
 		os.Exit(1)
 	}
@@ -99,18 +108,30 @@ func main() {
 
 	// 检测是否有账户token信息
 	for _, account := range accounts {
+		if ctx.Err() != nil {
+			logger.Info("收到退出信号，程序已停止")
+			return
+		}
 		if account.Token == "" {
 			logger.Error("账户没有token，故障，数据库文件异常", "phone", account.Phone)
 			continue
 		}
 		if account.Token != "" {
-			_, err := course.GetCourseSignInID(account.Token)
+			_, err := course.GetCourseSignInID(ctx, account.Token)
+			if ctx.Err() != nil {
+				logger.Info("收到退出信号，程序已停止")
+				return
+			}
 			// 检查token是否过期
 			if errors.Is(err, app.ErrTokenInvalid) {
 				if account.Password != "" {
 					// 重新获取token
-					newToken, err := auth.AuthWithPassword(account.Phone, account.Password)
+					newToken, err := auth.AuthWithPassword(ctx, account.Phone, account.Password)
 					if err != nil {
+						if ctx.Err() != nil {
+							logger.Info("收到退出信号，程序已停止")
+							return
+						}
 						logger.Error("重新获取token失败", "phone", account.Phone, "error", err)
 						if err := store.DeleteAccount(ctx, account.Phone); err != nil {
 							logger.Error("删除账户信息失败", "phone", account.Phone, "error", err)
@@ -145,6 +166,10 @@ func main() {
 	// 再次加载账户数据，确保获取到最新的token信息
 	accounts, err = store.LoadAccounts(ctx)
 	if err != nil {
+		if ctx.Err() != nil {
+			logger.Info("收到退出信号，程序已停止")
+			return
+		}
 		logger.Error("无法加载账户数据", "error", err)
 		os.Exit(1)
 	}
@@ -163,10 +188,15 @@ func main() {
 			}
 			var CourseSignInID string
 			for {
-				NewCourseSignInID, err := course.GetCourseSignInID(account.Token)
+				NewCourseSignInID, err := course.GetCourseSignInID(ctx, account.Token)
+				if ctx.Err() != nil {
+					return
+				}
 				if errors.Is(err, app.CourseSignInNill) {
 					logger.Info("账户没有开启课程签到", "phone", account.Phone)
-					time.Sleep(2 * time.Second)
+					if !sleepContext(ctx, 2*time.Second) {
+						return
+					}
 					continue
 				} else if err != nil {
 					logger.Error("获取课程签到ID失败", "phone", account.Phone, "error", err)
@@ -177,8 +207,11 @@ func main() {
 				break
 			}
 
-			codeDistance, remainingTime, err := course.GetSignInInfoAndParse(account.Token, CourseSignInID)
+			codeDistance, remainingTime, err := course.GetSignInInfoAndParse(ctx, account.Token, CourseSignInID)
 			if err != nil {
+				if ctx.Err() != nil {
+					return
+				}
 				logger.Error("获取课程签到信息失败", "phone", account.Phone, "error", err)
 				return
 			}
@@ -200,7 +233,9 @@ func main() {
 					if remainingTime%5 == 0 {
 						logger.Info("课程签到剩余时间", "phone", account.Phone, "remainingTime", remainingTime)
 					}
-					time.Sleep(1 * time.Second)
+					if !sleepContext(ctx, time.Second) {
+						return
+					}
 					remainingTime--
 					if remainingTime < defaultsignintime {
 						logger.Info("课程签到剩余时间小于"+fmt.Sprintf("%d", defaultsignintime)+"秒，准备签到", "phone", account.Phone, "remainingTime", remainingTime)
@@ -209,8 +244,11 @@ func main() {
 				}
 			}
 
-			status, err := sign.SignIn(account.Token, CourseSignInID, codeDistance)
+			status, err := sign.SignIn(ctx, account.Token, CourseSignInID, codeDistance)
 			if err != nil {
+				if ctx.Err() != nil {
+					return
+				}
 				logger.Error("课程签到失败", "phone", account.Phone, "error", err)
 				return
 			}
@@ -224,5 +262,21 @@ func main() {
 	}
 
 	wg.Wait()
+	if ctx.Err() != nil {
+		logger.Info("收到退出信号，所有任务已停止")
+	}
 
+}
+
+// sleepContext 与 time.Sleep 类似，但会在上下文取消时立刻返回。
+func sleepContext(ctx context.Context, duration time.Duration) bool {
+	timer := time.NewTimer(duration)
+	defer timer.Stop()
+
+	select {
+	case <-timer.C:
+		return true
+	case <-ctx.Done():
+		return false
+	}
 }

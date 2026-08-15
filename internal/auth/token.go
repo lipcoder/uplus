@@ -2,6 +2,7 @@ package auth
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -23,8 +24,8 @@ func NewAuthService(client *http.Client) *AuthService {
 	return &AuthService{client: client}
 }
 
-func (s *AuthService) AuthWithPassword(phone string, password string) (string, error) {
-	publicKey, err := s.GetPublicKey()
+func (s *AuthService) AuthWithPassword(ctx context.Context, phone string, password string) (string, error) {
+	publicKey, err := s.GetPublicKey(ctx)
 	if err != nil {
 		return "", fmt.Errorf("获取公钥失败: %w", err)
 	}
@@ -34,7 +35,7 @@ func (s *AuthService) AuthWithPassword(phone string, password string) (string, e
 		return "", fmt.Errorf("加密密码失败: %w", err)
 	}
 
-	token, err := s.GetToken(publicKey, encryptedPassword)
+	token, err := s.GetToken(ctx, publicKey, encryptedPassword)
 	if err != nil {
 		return "", fmt.Errorf("获取 token 失败: %w", err)
 	}
@@ -43,8 +44,8 @@ func (s *AuthService) AuthWithPassword(phone string, password string) (string, e
 }
 
 // 获取公钥
-func (s *AuthService) GetPublicKey() (string, error) {
-	PublicKey, err := s.getPublicKey()
+func (s *AuthService) GetPublicKey(ctx context.Context) (string, error) {
+	PublicKey, err := s.getPublicKey(ctx)
 	if err != nil {
 		return "", fmt.Errorf("获取公钥失败: %w", err)
 	}
@@ -52,7 +53,7 @@ func (s *AuthService) GetPublicKey() (string, error) {
 	return PublicKey, nil
 }
 
-func (s *AuthService) getPublicKey() (string, error) {
+func (s *AuthService) getPublicKey(ctx context.Context) (string, error) {
 	// 创建一个内存缓冲区，用于保存编码后的 JSON 请求体
 	var body bytes.Buffer
 
@@ -71,7 +72,8 @@ func (s *AuthService) getPublicKey() (string, error) {
 		return "", fmt.Errorf("%w: %w", app.ErrBuildRequest, err)
 	}
 
-	req, err := http.NewRequest(
+	req, err := http.NewRequestWithContext(
+		ctx,
 		http.MethodPost,
 		defaultGetPemURL,
 		&body,
@@ -121,8 +123,8 @@ func (s *AuthService) getPublicKey() (string, error) {
 }
 
 // 使用公钥和加密后的账号密码来获取token
-func (s *AuthService) GetToken(publicKey string, cryptogram string) (string, error) {
-	token, err := s.getToken(publicKey, cryptogram)
+func (s *AuthService) GetToken(ctx context.Context, publicKey string, cryptogram string) (string, error) {
+	token, err := s.getToken(ctx, publicKey, cryptogram)
 	if err != nil {
 		return "", fmt.Errorf("获取 token 失败: %w", err)
 	}
@@ -130,7 +132,7 @@ func (s *AuthService) GetToken(publicKey string, cryptogram string) (string, err
 	return token, nil
 }
 
-func (s *AuthService) getToken(publicKey string, cryptogram string) (string, error) {
+func (s *AuthService) getToken(ctx context.Context, publicKey string, cryptogram string) (string, error) {
 	var body bytes.Buffer
 
 	payload := struct {
@@ -147,7 +149,8 @@ func (s *AuthService) getToken(publicKey string, cryptogram string) (string, err
 		return "", fmt.Errorf("%w: %w", app.ErrBuildRequest, err)
 	}
 
-	req, err := http.NewRequest(
+	req, err := http.NewRequestWithContext(
+		ctx,
 		http.MethodPost,
 		defaultPostTokenURL,
 		&body,

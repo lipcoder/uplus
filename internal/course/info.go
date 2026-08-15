@@ -1,6 +1,7 @@
 package course
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,8 +14,8 @@ import (
 const CourseInfoURL = "https://www.eduplus.net/api/course/clock_in/"
 
 // GetSignInInfoAndParse 获取课程签到信息和签到码
-func (s *Course) GetSignInInfoAndParse(Token string, CourseSignInID string) (string, int, error) {
-	body, err := s.GetSignInInfo(Token, CourseSignInID)
+func (s *Course) GetSignInInfoAndParse(ctx context.Context, Token string, CourseSignInID string) (string, int, error) {
+	body, err := s.GetSignInInfo(ctx, Token, CourseSignInID)
 	if err != nil {
 		return "", 0, fmt.Errorf("%s: %w", "获取课程签到信息失败", err)
 	}
@@ -28,7 +29,7 @@ func (s *Course) GetSignInInfoAndParse(Token string, CourseSignInID string) (str
 }
 
 // GetSignInInfo 获取课程签到信息，但是不解析课程签到信息，返回原始的响应体
-func (s *Course) GetSignInInfo(Token string, CourseSignInID string) ([]byte, error) {
+func (s *Course) GetSignInInfo(ctx context.Context, Token string, CourseSignInID string) ([]byte, error) {
 	if Token == "" {
 		return nil, app.ErrTokenNill
 	}
@@ -39,7 +40,7 @@ func (s *Course) GetSignInInfo(Token string, CourseSignInID string) ([]byte, err
 
 	requestURL := CourseInfoURL + url.PathEscape(CourseSignInID) + "/student"
 
-	req, err := http.NewRequest(http.MethodGet, requestURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", app.ErrBuildRequest, err)
 	}
