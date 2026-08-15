@@ -17,7 +17,7 @@ type Store struct {
 }
 
 // Open 打开 SQLite 数据库并初始化账号表。
-func Open(path string) (*Store, error) {
+func Open(ctx context.Context, path string) (*Store, error) {
 
 	if path == "" {
 		return nil, errors.New("数据库路径不能为空")
@@ -32,7 +32,7 @@ func Open(path string) (*Store, error) {
 	db.SetMaxOpenConns(1)
 
 	store := &Store{db: db}
-	if err := store.initialize(context.Background()); err != nil {
+	if err := store.initialize(ctx); err != nil {
 		_ = db.Close()
 		return nil, err
 	}

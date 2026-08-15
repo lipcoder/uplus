@@ -1,6 +1,7 @@
 package course
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -20,8 +21,8 @@ func NewCourse(client *http.Client) *Course {
 }
 
 // GetCourseSignInID 获取课程签到 ID，如果没有开启课程签到，则返回 app.CourseSignInNill 错误
-func (c *Course) GetCourseSignInID(token string) (string, error) {
-	body, err := c.GetCourseInfo(token)
+func (c *Course) GetCourseSignInID(ctx context.Context, token string) (string, error) {
+	body, err := c.GetCourseInfo(ctx, token)
 	if err != nil {
 		return "", err
 	}
@@ -35,11 +36,11 @@ func (c *Course) GetCourseSignInID(token string) (string, error) {
 }
 
 // GetCourseInfo 获取课程信息，但是不解析课程信息，返回原始的响应体
-func (c *Course) GetCourseInfo(token string) ([]byte, error) {
+func (c *Course) GetCourseInfo(ctx context.Context, token string) ([]byte, error) {
 	if token == "" {
 		return nil, fmt.Errorf("%w: %w", app.ErrTokenNill, app.ErrBuildRequest)
 	}
-	req, err := http.NewRequest(http.MethodGet, CourseListURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, CourseListURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", app.ErrBuildRequest, err)
 	}
