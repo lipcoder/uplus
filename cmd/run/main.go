@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -18,7 +19,10 @@ import (
 	"github.com/lipcoder/uplus/internal/signin"
 )
 
-const defaultdatabasePath = "accounts.db"
+const (
+	defaultdatabasePath = "accounts.db" // defaultdatabasePath 表示默认的数据库文件路径
+	defaultsignintime   = 10            // defaultsignintime 表示课程签到剩余时间小于多少秒时，开始进行签到操作
+)
 
 func main() {
 	// 日志器
@@ -156,6 +160,25 @@ func main() {
 				return
 			}
 			logger.Info("获取课程签到信息成功", "phone", account.Phone, "codeDistance", codeDistance, "remainingTime", remainingTime)
+
+			// 如果是验证码签到，则加入等待时间，直到剩余时间小于固定时间时再进行签到操作
+			if codeDistance != "200" {
+				for {
+					if remainingTime <= 0 {
+						logger.Info("课程签到时间已过", "phone", account.Phone)
+						break
+					}
+					if remainingTime%5 == 0 {
+						logger.Info("课程签到剩余时间", "phone", account.Phone, "remainingTime", remainingTime)
+					}
+					time.Sleep(1 * time.Second)
+					remainingTime--
+					if remainingTime < defaultsignintime {
+						logger.Info("课程签到剩余时间小于"+fmt.Sprintf("%d", defaultsignintime)+"秒，准备签到", "phone", account.Phone, "remainingTime", remainingTime)
+						break
+					}
+				}
+			}
 
 			status, err := sign.SignIn(account.Token, CourseSignInID, codeDistance)
 			if err != nil {
