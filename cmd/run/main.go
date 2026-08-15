@@ -16,12 +16,18 @@ import (
 	"github.com/lipcoder/uplus/internal/auth"
 	"github.com/lipcoder/uplus/internal/course"
 	"github.com/lipcoder/uplus/internal/database"
+	emailer "github.com/lipcoder/uplus/internal/emailer"
 	"github.com/lipcoder/uplus/internal/signin"
 )
 
 const (
 	defaultdatabasePath = "accounts.db" // defaultdatabasePath 表示默认的数据库文件路径
 	defaultsignintime   = 10            // defaultsignintime 表示课程签到剩余时间小于多少秒时，开始进行签到操作
+)
+
+var (
+	emailFrom     string // emailFrom 表示发信邮箱地址
+	emailAuthCode string // emailAuthCode 表示发信邮箱授权码
 )
 
 func main() {
@@ -50,6 +56,23 @@ func main() {
 		logger.Error("无法加载账户数据", "error", err)
 		os.Exit(1)
 	}
+	logger.Info("账户数据加载成功", "count", len(accounts))
+
+	// email
+	if v := os.Getenv("QQ_MAIL"); v != "" {
+		emailFrom = v
+		logger.Info("emailFrom 环境变量已覆盖")
+	}
+	if v := os.Getenv("QQ_MAIL_AUTH_CODE"); v != "" {
+		emailAuthCode = v
+		logger.Info("emailAuthCode 环境变量已覆盖")
+	}
+	if emailFrom == "" || emailAuthCode == "" {
+		logger.Error("请设置环境变量 QQ_MAIL 和 QQ_MAIL_AUTH_CODE")
+		os.Exit(1)
+	}
+	logger.Info("发信邮箱配置成功", "from", emailFrom)
+	mailer := emailer.New(emailFrom, emailAuthCode)
 
 	if len(accounts) == 0 {
 		logger.Info("没有找到账户数据，请先添加账户")
@@ -160,6 +183,12 @@ func main() {
 				return
 			}
 			logger.Info("获取课程签到信息成功", "phone", account.Phone, "codeDistance", codeDistance, "remainingTime", remainingTime)
+
+			if err := mailer.Send(account.Email, codeDistance); err != nil { // 发送邮件通知用户课程签到信息
+				logger.Error("发送邮件通知失败", "phone", account.Phone, "error", err)
+				return
+			}
+			logger.Info("已发送邮件通知用户课程签到信息", "phone", account.Phone, "email", account.Email, "codeDistance", codeDistance)
 
 			// 如果是验证码签到，则加入等待时间，直到剩余时间小于固定时间时再进行签到操作
 			if codeDistance != "200" {
