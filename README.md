@@ -1,3 +1,5 @@
+
+
 # UPLUS
 
 用于自动辅助**U+平台**学习的工具
@@ -26,23 +28,39 @@
 2. **编译安装**  
    如需自行编译安装，请继续按照下面的步骤操作。
 
-### install
+### install & use
 
 1. 打包下载或clone至本地
 
-2. ```bash
-   go build -o add cmd/run/main.go #日常运行的运行时
-   go build -o run cmd/add/main.go #添加账号token，相较于原版，无需手动添加，后续会合并
+2. 使用邮箱通知需要配置环境变量QQ_MAIL及QQ_MAIL_AUTH_CODE，要求使用支持smtp的邮箱，当前我以QQ邮箱为例，需在网页版设置->账号与安全->安全设置->开启smtp服务，获得的授权码为QQ_MAIL_AUTH_CODE的值
+
+3. 编译添加账号程序
+
+   ```bash
+   go build -o add cmd/add/main.go #添加账号token，相较于原版，无需手动添加，后续会合并
    ```
 
-## Use
+4. 编译需要环境变量的签到程序
 
-运行时无额外参数，使用邮箱通知是需要配置环境变量QQ_MAIL及QQ_MAIL_AUTH_CODE，可以不使用QQ邮箱，当前我以QQ邮箱为例，需在网页版设置->账号与安全->安全设置->开启smtp服务，获得的授权码为QQ_MAIL_AUTH_CODE的值
+   ```bash
+   export QQ_MAIL=*****
+   export QQ_MAIL_AUTH_CODE=********
+   go build -o run cmd/run/main.go #日常运行的运行时
+   ./run #运行签到程序
+   ```
 
-```bash
-export QQ_MAIL=*****
-export QQ_MAIL_AUTH_CODE=********
-```
+5. 编译无需环境变量的签到程序
+
+   ```bash
+   export QQ_MAIL=*****
+   export QQ_MAIL_AUTH_CODE=********
+   go build \                               
+     -ldflags "-X 'main.emailFrom=${QQ_MAIL}' -X 'main.emailAuthCode=${QQ_MAIL_AUTH_CODE}'" \
+     -o uplus \
+     ./cmd/run/main.go 
+   
+   ./uplus
+   ```
 
 ## License
 
