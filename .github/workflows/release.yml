@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Build release binaries
+        shell: bash
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          version="${TAG_NAME#v}"
+          targets=(
+            "darwin amd64"
+            "darwin arm64"
+            "linux amd64"
+            "linux arm64"
+          )
+
+          mkdir -p dist
+
+          for target in "${targets[@]}"; do
+            read -r goos goarch <<< "${target}"
+            output_dir="dist/${goos}_${goarch}"
+            archive_name="uplus_${version}_${goos}_${goarch}.tar.gz"
+
+            mkdir -p "${output_dir}"
+
+            CGO_ENABLED=0 GOOS="${goos}" GOARCH="${goarch}" \
+              go build -trimpath -o "${output_dir}/add" ./cmd/add/main.go
+
+            CGO_ENABLED=0 GOOS="${goos}" GOARCH="${goarch}" \
+              go build -trimpath -o "${output_dir}/run" ./cmd/run/main.go
+
+            tar -C "${output_dir}" -czf "dist/${archive_name}" \
+              add run
+          done
+
+          (
+            cd dist
+            sha256sum ./*.tar.gz > "uplus_${version}_checksums.txt"
+          )
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            ./dist/*.tar.gz \
+            ./dist/*_checksums.txt \
+            --verify-tag \
+            --generate-notes \
+            --title "${GITHUB_REF_NAME}"
