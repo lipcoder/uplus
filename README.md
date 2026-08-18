@@ -43,12 +43,9 @@
 4. 编译需要环境变量的签到程序
 
    ```bash
-   export QQ_MAIL=*****
-   export QQ_MAIL_AUTH_CODE=********
    go build -o run cmd/run/main.go #日常运行的运行时
-   ./run #运行签到程序
    ```
-
+   
 5. 编译无需环境变量的签到程序
 
    ```bash
@@ -58,7 +55,24 @@
      -ldflags "-X 'main.emailFrom=${QQ_MAIL}' -X 'main.emailAuthCode=${QQ_MAIL_AUTH_CODE}'" \
      -o uplus \
      ./cmd/run/main.go 
+   ```
    
+5. 使用
+
+   ```bash
+   # 运行添加程序
+   ./add
+   ```
+   
+   ```bash
+   # 运行签到程序
+   export QQ_MAIL=*****
+   export QQ_MAIL_AUTH_CODE=********
+   ./run 
+   ```
+   
+   ```bash
+   # 运行无需环境变量的程序
    ./uplus
    ```
 
