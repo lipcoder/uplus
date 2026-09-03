@@ -4,7 +4,9 @@
 
 用于自动辅助**U+平台**学习的工具
 
-借鉴原作者的设计思路，但最终产品对应博客文章的认证思路，未按照原项目设计
+借鉴[原作者](https://github.com/RetiredGuitar64/ujia-signer-by-crystal)的设计思路，但最终产品对应原作者在吾爱破解论坛博客[文章](https://www.52pojie.cn/thread-2106243-1-1.html)的认证思路，未按照原项目设计
+
+为尊重原作者意愿，使用相同的许可证
 
 ## Features
 
