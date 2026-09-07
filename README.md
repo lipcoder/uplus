@@ -53,10 +53,10 @@
    ```bash
    export QQ_MAIL=*****
    export QQ_MAIL_AUTH_CODE=********
-   go build \                               
+   go build \
      -ldflags "-X 'main.emailFrom=${QQ_MAIL}' -X 'main.emailAuthCode=${QQ_MAIL_AUTH_CODE}'" \
      -o uplus \
-     ./cmd/run/main.go 
+     ./cmd/run/main.go
    ```
    
 5. 使用
