@@ -4,3 +4,4 @@ ujia-signer-by-crystal/
 /accounts.db
 /logx
 /failed-responses/
+build/
