@@ -24,6 +24,7 @@ func NewAuthService(client *http.Client) *AuthService {
 	return &AuthService{client: client}
 }
 
+// AuthWithPassword 使用手机号和密码进行认证，返回 token
 func (s *AuthService) AuthWithPassword(ctx context.Context, phone string, password string) (string, error) {
 	publicKey, err := s.GetPublicKey(ctx)
 	if err != nil {
