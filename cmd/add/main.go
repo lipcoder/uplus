@@ -16,7 +16,7 @@ import (
 	"github.com/lipcoder/uplus/internal/database"
 )
 
-const defaultdatabasePath = "accounts.db"
+const defaultDatabasePath = "accounts.db"
 
 func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
@@ -31,7 +31,7 @@ func main() {
 	client := &http.Client{Timeout: 10 * time.Second}
 
 	authService := auth.NewAuthService(client)
-	store, err := database.Open(ctx, defaultdatabasePath)
+	store, err := database.Open(ctx, defaultDatabasePath)
 	if err != nil {
 		if ctx.Err() != nil {
 			logger.Info("收到退出信号，程序已停止")
@@ -40,7 +40,12 @@ func main() {
 		logger.Error("无法打开数据库", "error", err)
 		os.Exit(1)
 	}
-	defer store.Close()
+	defer func(store *database.Store) {
+		err := store.Close()
+		if err != nil {
+			logger.Error("关闭数据库错误", "error", err)
+		}
+	}(store)
 
 	scanner := bufio.NewScanner(os.Stdin)
 	input := scanInput(ctx, scanner)
