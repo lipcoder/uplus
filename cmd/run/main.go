@@ -52,7 +52,12 @@ func main() {
 		logger.Error("无法打开数据库", "error", err)
 		os.Exit(1)
 	}
-	defer store.Close()
+	defer func(store *database.Store) {
+		err := store.Close()
+		if err != nil {
+			logger.Error("关闭数据库出错", "error", err)
+		}
+	}(store)
 	logger.Info("数据库连接成功")
 
 	// 加载账户数据
@@ -88,21 +93,21 @@ func main() {
 		os.Exit(0)
 	}
 
-	tokenclient := &http.Client{
+	tokenClient := &http.Client{
 		Timeout: 10 * time.Second,
 	}
 
-	courseclient := &http.Client{
+	courseClient := &http.Client{
 		Timeout: 5 * time.Second,
 	}
 
-	signinclient := &http.Client{
+	signInClient := &http.Client{
 		Timeout: 10 * time.Second,
 	}
 
-	course := course.NewCourse(courseclient)
-	auth := auth.NewAuthService(tokenclient)
-	sign := signin.NewSignInService(signinclient)
+	newCourse := course.NewCourse(courseClient)
+	newAuthService := auth.NewAuthService(tokenClient)
+	sign := signin.NewSignInService(signInClient)
 
 	logger.Info("开始检查账户token")
 
@@ -117,7 +122,7 @@ func main() {
 			continue
 		}
 		if account.Token != "" {
-			_, err := course.GetCourseSignInID(ctx, account.Token)
+			_, err := newCourse.GetCourseSignInID(ctx, account.Token)
 			if ctx.Err() != nil {
 				logger.Info("收到退出信号，程序已停止")
 				return
@@ -126,7 +131,7 @@ func main() {
 			if errors.Is(err, app.ErrTokenInvalid) {
 				if account.Password != "" {
 					// 重新获取token
-					newToken, err := auth.AuthWithPassword(ctx, account.Phone, account.Password)
+					newToken, err := newAuthService.AuthWithPassword(ctx, account.Phone, account.Password)
 					if err != nil {
 						if ctx.Err() != nil {
 							logger.Info("收到退出信号，程序已停止")
@@ -188,7 +193,7 @@ func main() {
 			}
 			var CourseSignInID string
 			for {
-				NewCourseSignInID, err := course.GetCourseSignInID(ctx, account.Token)
+				NewCourseSignInID, err := newCourse.GetCourseSignInID(ctx, account.Token)
 				if ctx.Err() != nil {
 					return
 				}
@@ -207,7 +212,7 @@ func main() {
 				break
 			}
 
-			codeDistance, remainingTime, err := course.GetSignInInfoAndParse(ctx, account.Token, CourseSignInID)
+			codeDistance, remainingTime, err := newCourse.GetSignInInfoAndParse(ctx, account.Token, CourseSignInID)
 			if err != nil {
 				if ctx.Err() != nil {
 					return
@@ -268,7 +273,7 @@ func main() {
 
 }
 
-// sleepContext 与 time.Sleep 类似，但会在上下文取消时立刻返回。
+// sleepContext 与 time.Sleep 类似，但会在上下文取消时立刻返回
 func sleepContext(ctx context.Context, duration time.Duration) bool {
 	timer := time.NewTimer(duration)
 	defer timer.Stop()
