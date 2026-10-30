@@ -5,3 +5,6 @@ ujia-signer-by-crystal/
 /logx
 /failed-responses/
 build/
+
+# goland
+.idea/
