@@ -43,7 +43,7 @@ func (s *AuthService) AuthWithPassword(ctx context.Context, phone string, passwo
 	return token, nil
 }
 
-// 获取公钥
+// GetPublicKey 获取公钥
 func (s *AuthService) GetPublicKey(ctx context.Context) (string, error) {
 	PublicKey, err := s.getPublicKey(ctx)
 	if err != nil {
@@ -122,7 +122,7 @@ func (s *AuthService) getPublicKey(ctx context.Context) (string, error) {
 	return publicKey, nil
 }
 
-// 使用公钥和加密后的账号密码来获取token
+// GetToken 使用公钥和加密后的账号密码来获取token
 func (s *AuthService) GetToken(ctx context.Context, publicKey string, cryptogram string) (string, error) {
 	token, err := s.getToken(ctx, publicKey, cryptogram)
 	if err != nil {
