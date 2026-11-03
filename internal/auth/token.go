@@ -198,5 +198,9 @@ func (s *AuthService) getToken(ctx context.Context, publicKey string, cryptogram
 		return "", fmt.Errorf("%w: %w", app.ErrJSONParse, err)
 	}
 
+	if tokenResponse.Data.AccessToken == "" {
+		return "", app.ErrTokenNill
+	}
+
 	return tokenResponse.Data.AccessToken, nil
 }
