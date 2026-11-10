@@ -7,13 +7,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 
 	"github.com/lipcoder/uplus/internal/app"
-)
-
-const (
-	defaultGetPemURL    = "https://example.invalid/removed/checkup"
-	defaultPostTokenURL = "https://example.invalid/removed/submit"
 )
 
 type AuthService struct {
@@ -76,7 +72,7 @@ func (s *AuthService) getPublicKey(ctx context.Context) (string, error) {
 	req, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodPost,
-		defaultGetPemURL,
+		os.Getenv("UPLUS_AUTH_CHECKUP_URL"),
 		&body,
 	)
 
@@ -153,7 +149,7 @@ func (s *AuthService) getToken(ctx context.Context, publicKey string, cryptogram
 	req, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodPost,
-		defaultPostTokenURL,
+		os.Getenv("UPLUS_AUTH_SUBMIT_URL"),
 		&body,
 	)
 
@@ -163,7 +159,6 @@ func (s *AuthService) getToken(ctx context.Context, publicKey string, cryptogram
 
 	req.Header.Set("accept", "application/json, text/plain, */*")
 	req.Header.Set("content-type", "application/json")
-	req.Header.Set("host", "api.example.invalid")
 	req.Header.Set("connection", "Keep-Alive")
 	req.Header.Set("user-agent", "okhttp/4.12.0")
 

@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 
 	"github.com/lipcoder/uplus/internal/app"
 )
@@ -19,8 +20,6 @@ func NewSignInService(client *http.Client) *SignIn {
 	return &SignIn{client: client}
 }
 
-const PasswdSignInURL = "https://example.invalid/removed/sign-in?signInId="
-
 func (s *SignIn) SignIn(ctx context.Context, Token string, CourseSignInID string, CodeDistance string) (bool, error) {
 	if Token == "" {
 		return false, app.ErrTokenNill
@@ -32,9 +31,9 @@ func (s *SignIn) SignIn(ctx context.Context, Token string, CourseSignInID string
 
 	var RequestURL string
 	if CodeDistance == "200" {
-		RequestURL = PasswdSignInURL + url.PathEscape(CourseSignInID)
+		RequestURL = os.Getenv("UPLUS_SIGN_IN_URL") + url.PathEscape(CourseSignInID)
 	} else {
-		RequestURL = PasswdSignInURL + url.PathEscape(CourseSignInID) + "&codeDistance=" + CodeDistance
+		RequestURL = os.Getenv("UPLUS_SIGN_IN_URL") + url.PathEscape(CourseSignInID) + "&codeDistance=" + CodeDistance
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, RequestURL, nil)

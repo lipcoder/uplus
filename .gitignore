@@ -11,3 +11,10 @@ build/
 
 # test
 *_test.go
+# Local endpoint configuration
+.env
+.env.*
+!.env.example
+
+# Keep configuration regression tests in version control.
+!/internal/config/*_test.go

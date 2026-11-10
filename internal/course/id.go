@@ -6,11 +6,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 
 	"github.com/lipcoder/uplus/internal/app"
 )
-
-const CourseListURL = "https://example.invalid/removed/courses"
 
 type Course struct {
 	client *http.Client
@@ -40,7 +39,7 @@ func (c *Course) GetCourseInfo(ctx context.Context, token string) ([]byte, error
 	if token == "" {
 		return nil, fmt.Errorf("%w: %w", app.ErrTokenNill, app.ErrBuildRequest)
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, CourseListURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, os.Getenv("UPLUS_COURSE_LIST_URL"), nil)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", app.ErrBuildRequest, err)
 	}
@@ -48,7 +47,6 @@ func (c *Course) GetCourseInfo(ctx context.Context, token string) ([]byte, error
 	req.Header.Set("x-access-token", token)
 	req.Header.Set("Cookie", "SESSION="+token)
 	req.Header.Set("User-Agent", "okhttp/4.12.0")
-	req.Header.Set("Host", "api.example.invalid")
 	req.Header.Set("Connection", "Keep-Alive")
 
 	resp, err := c.client.Do(req)

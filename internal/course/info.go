@@ -7,11 +7,10 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 
 	"github.com/lipcoder/uplus/internal/app"
 )
-
-const CourseInfoURL = "https://example.invalid/removed/clock-in/"
 
 // GetSignInInfoAndParse 获取课程签到信息和签到码
 func (s *Course) GetSignInInfoAndParse(ctx context.Context, Token string, CourseSignInID string) (string, int, error) {
@@ -38,7 +37,7 @@ func (s *Course) GetSignInInfo(ctx context.Context, Token string, CourseSignInID
 		return nil, app.CourseSignInNill
 	}
 
-	requestURL := CourseInfoURL + url.PathEscape(CourseSignInID) + "/student"
+	requestURL := os.Getenv("UPLUS_COURSE_INFO_URL") + url.PathEscape(CourseSignInID) + "/student"
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
 	if err != nil {

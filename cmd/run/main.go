@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/lipcoder/uplus/internal/config"
 	"github.com/lipcoder/uplus/internal/database"
 	"github.com/lipcoder/uplus/internal/web"
 )
@@ -16,6 +17,11 @@ const defaultdatabasePath = "accounts.db"
 func main() {
 	// 日志器
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+
+	if err := config.Load(".env"); err != nil {
+		logger.Error("接口配置加载失败", "error", err)
+		os.Exit(1)
+	}
 
 	// 根上下文负责把 Ctrl+C/SIGTERM 传递给数据库、HTTP 请求和后台任务。
 	ctx, stop := signal.NotifyContext(

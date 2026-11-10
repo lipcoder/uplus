@@ -33,11 +33,23 @@
 
 1. 打包下载或clone至本地
 
-2. 编译
+2. 配置接口
+
+   ```bash
+   cp .env.example .env
+   chmod 600 .env
+   ```
+
+   在 `.env` 中填写五个接口地址。真实的 `.env` 已被 Git 忽略，请另存一份私人备份；发布包和仓库不会携带接口值。
+   配置格式为 `KEY=VALUE`，允许空行、整行 `#` 注释、`export ` 前缀以及单引号或双引号包裹的值。URL 查询参数中的 `=` 会完整保留，不执行变量替换或 Shell 命令。
+   已设置的系统环境变量优先于 `.env`，也可完全通过系统环境变量配置。程序从**当前工作目录**读取 `.env`，启动前检查五项配置是否完整。
+   `UPLUS_COURSE_INFO_URL` 以 `/` 结尾；`UPLUS_SIGN_IN_URL` 以 `?signInId=` 或 `&signInId=` 结尾。
+
+3. 编译并从 `.env` 所在目录启动
 
    ```bash
    go build -o run cmd/run/main.go
-   ./main
+   ./run
    ```
 
 ## License
