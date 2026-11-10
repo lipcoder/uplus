@@ -21,18 +21,43 @@
 <label for="phone">手机号</label><input id="phone" name="phone" type="tel" autocomplete="username" required>
 <label for="password">密码</label><input id="password" name="password" type="password" autocomplete="current-password" required>
 <div id="form-error" class="form-error" role="alert" hidden></div><div class="actions"><button type="button" id="cancel-add">取消</button><button class="primary" id="submit-add" type="submit">认证并保存</button></div></form></dialog>
+<template id="account-row">
+  <tr>
+    <td><div class="phone" data-ref="phone"></div></td>
+    <td><label class="switch"><input type="checkbox" data-ref="toggle"><span data-ref="switchText"></span></label></td>
+    <td>
+      <div class="seconds">
+        <input type="number" min="10" max="86400" step="1" data-ref="seconds">
+        <span class="unit">秒</span><button type="button" data-ref="save">保存</button>
+      </div>
+    </td>
+    <td>
+      <div class="seconds">
+        <input type="number" min="2" max="86400" step="1" data-ref="pollInterval">
+        <span class="unit">秒</span><button type="button" data-ref="pollSave">保存</button>
+      </div>
+    </td>
+    <td>
+      <span class="status" data-ref="status"></span>
+      <span class="countdown" data-ref="countdown"></span>
+      <span class="sign-in-code" data-ref="signInCode" hidden></span>
+    </td>
+    <td class="last" data-ref="last"></td>
+  </tr>
+</template>
 <script>
 const $=id=>document.getElementById(id), rows=new Map();
 let loading=false;
 function notice(text,error=false){const n=$('notice');n.textContent=text;n.className='notice'+(error?' error':'');n.hidden=false;}
 async function api(path,method='GET',body){const r=await fetch(path,{method,headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined,cache:'no-store',signal:AbortSignal.timeout(15000)});const data=await r.json();if(!r.ok)throw Error(data.error||'请求失败，请重试');return data;}
-function element(tag,className,text){const e=document.createElement(tag);if(className)e.className=className;if(text!==undefined)e.textContent=text;return e;}
-function makeRow(a){const tr=element('tr'),identity=element('td'),phone=element('div','phone',a.maskedPhone);identity.append(phone);
-const enabledCell=element('td'),label=element('label','switch'),toggle=element('input'),switchText=element('span');toggle.type='checkbox';toggle.setAttribute('aria-label',a.maskedPhone+' 自动签到');label.append(toggle,switchText);enabledCell.append(label);
-const secondsCell=element('td'),group=element('div','seconds'),seconds=element('input'),save=element('button','','保存');seconds.type='number';seconds.min='10';seconds.max='86400';seconds.step='1';seconds.setAttribute('aria-label',a.maskedPhone+' 签到延迟');group.append(seconds,element('span','unit','秒'),save);secondsCell.append(group);
-const pollingCell=element('td'),pollingGroup=element('div','seconds'),pollInterval=element('input'),pollSave=element('button','','保存');pollInterval.type='number';pollInterval.min='2';pollInterval.max='86400';pollInterval.step='1';pollInterval.setAttribute('aria-label',a.maskedPhone+' 查询间隔');pollingGroup.append(pollInterval,element('span','unit','秒'),pollSave);pollingCell.append(pollingGroup);
-const statusCell=element('td'),status=element('span','status'),countdown=element('span','countdown'),signInCode=element('span','sign-in-code'),last=element('td','last');signInCode.hidden=true;statusCell.append(status,countdown,signInCode);tr.append(identity,enabledCell,secondsCell,pollingCell,statusCell,last);$('accounts').append(tr);
-const row={tr,toggle,switchText,seconds,save,pollInterval,pollSave,status,countdown,signInCode,last,dirty:false,busy:false,account:a};rows.set(a.id,row);
+function makeRow(a){
+const tr=$('account-row').content.firstElementChild.cloneNode(true);
+const refs=Object.fromEntries([...tr.querySelectorAll('[data-ref]')].map(el=>[el.dataset.ref,el]));
+const {toggle,seconds,save,pollInterval,pollSave}=refs;
+refs.phone.textContent=a.maskedPhone;
+for(const [el,label] of [[toggle,'自动签到'],[seconds,'签到延迟'],[pollInterval,'查询间隔']])el.setAttribute('aria-label',a.maskedPhone+' '+label);
+const row={...refs,tr,dirty:false,busy:false,account:a};rows.set(a.id,row);
+$('accounts').append(tr);
 seconds.addEventListener('input',()=>{row.dirty=true;});pollInterval.addEventListener('input',()=>{row.dirty=true;});
 async function update(){const value=Number(seconds.value);if(seconds.value===''||!Number.isInteger(value)||value<10||value>86400){notice('签到延迟请填写 10 到 86400 之间的整数秒',true);toggle.checked=row.account.enabled;return;}
 const pollValue=Number(pollInterval.value);if(pollInterval.value===''||!Number.isInteger(pollValue)||pollValue<2||pollValue>86400){notice('查询间隔必须是 2 到 86400 之间的整数秒',true);toggle.checked=row.account.enabled;return;}
