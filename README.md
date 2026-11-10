@@ -42,4 +42,4 @@
 
 ## License
 
-本项目采用 AGPL-3.0 授权
+本项目采用 [GNU Affero General Public License v3.0（AGPL-3.0-only）](LICENSE) 授权。
