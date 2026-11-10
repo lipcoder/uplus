@@ -48,13 +48,10 @@ jobs:
             mkdir -p "${output_dir}"
 
             CGO_ENABLED=0 GOOS="${goos}" GOARCH="${goarch}" \
-              go build -trimpath -o "${output_dir}/add" ./cmd/add/main.go
-
-            CGO_ENABLED=0 GOOS="${goos}" GOARCH="${goarch}" \
               go build -trimpath -o "${output_dir}/run" ./cmd/run/main.go
 
             tar -C "${output_dir}" -czf "dist/${archive_name}" \
-              add run
+              run
           done
 
           (
