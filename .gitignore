@@ -8,3 +8,6 @@ build/
 
 # goland
 .idea/
+
+# test
+*_test.go
