@@ -6,7 +6,6 @@ type Account struct {
 	Phone    string
 	Password string
 	Token    string
-	Email    string
 }
 
 var (
